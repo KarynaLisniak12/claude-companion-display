@@ -1,4 +1,4 @@
-# Claude Desk Display
+# Claude Companion Display
 
 A portable physical status display for Claude Code, built for the
 [Waveshare ESP32-C6-LCD-1.47](https://docs.waveshare.com/ESP32-C6-LCD-1.47)
@@ -229,7 +229,7 @@ This is intended for diagnosis; a fixed port is less portable.
 npm run uninstall
 ```
 
-This removes only hook groups marked as belonging to Claude Desk Display and removes the Windows
+This removes only hook groups marked as belonging to Claude Companion Display and removes the Windows
 startup entry. Existing Claude Code settings and unrelated hooks are preserved.
 
 Uninstall does not terminate a companion process that is already running. Sign out, restart the

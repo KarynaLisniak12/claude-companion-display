@@ -1,5 +1,5 @@
 {
-  "name": "claude-desk-display",
+  "name": "claude-companion-display",
   "private": true,
   "scripts": {
     "build": "npm --prefix companion run build",
