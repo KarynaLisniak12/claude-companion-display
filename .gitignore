@@ -1,0 +1,8 @@
+node_modules/
+companion/dist/
+firmware/.pio/
+.env
+*.log
+.DS_Store
+.vscode/
+!.vscode/extensions.json

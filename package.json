@@ -1,0 +1,15 @@
+{
+  "name": "claude-desk-display",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix companion run build",
+    "test": "npm --prefix companion test",
+    "format": "npm --prefix companion run format",
+    "format:check": "npm --prefix companion run format:check",
+    "setup": "npm --prefix companion run setup",
+    "uninstall": "npm --prefix companion run uninstall",
+    "companion": "npm --prefix companion start",
+    "firmware:build": "pio run -d firmware",
+    "firmware:flash": "pio run -d firmware -t upload"
+  }
+}
