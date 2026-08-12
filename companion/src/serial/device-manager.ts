@@ -27,6 +27,7 @@ export class DeviceManager {
   private timer?: NodeJS.Timeout;
   private scanning = false;
   private running = false;
+  private statusAcknowledged = false;
   private lastMessage?: OutboundMessage;
 
   start(): void {
@@ -42,6 +43,7 @@ export class DeviceManager {
     this.timer = undefined;
     this.port?.close();
     this.port = undefined;
+    this.statusAcknowledged = false;
   }
 
   send(message: OutboundMessage): void {
@@ -102,11 +104,18 @@ export class DeviceManager {
         buffer = lines.pop() ?? "";
         for (const line of lines) {
           try {
-            const hello = JSON.parse(line) as Record<string, unknown>;
+            const message = JSON.parse(line) as Record<string, unknown>;
+            if (message.type === "ack" && message.message === "status") {
+              if (!this.statusAcknowledged) {
+                this.statusAcknowledged = true;
+                console.log(`[serial] display acknowledged status on ${path}`);
+              }
+              continue;
+            }
             if (
-              hello.type !== "hello" ||
-              hello.device !== "claude-desk-display" ||
-              hello.protocol !== 1
+              message.type !== "hello" ||
+              message.device !== "claude-desk-display" ||
+              message.protocol !== 1
             )
               continue;
             if (!this.running) {
@@ -114,9 +123,13 @@ export class DeviceManager {
               return;
             }
             this.port = candidate;
+            this.statusAcknowledged = false;
             console.log(`[serial] connected to ${path}`);
             candidate.on("close", () => {
-              if (this.port === candidate) this.port = undefined;
+              if (this.port === candidate) {
+                this.port = undefined;
+                this.statusAcknowledged = false;
+              }
             });
             if (this.lastMessage) candidate.write(encodeMessage(this.lastMessage));
             finish(true);

@@ -15,5 +15,6 @@ class SerialProtocol {
   size_t length_ = 0;
   bool overflow_ = false;
   void announce();
+  void acknowledge(const char* message, uint32_t sequence = 0);
   void handleLine();
 };

@@ -12,6 +12,14 @@ void SerialProtocol::announce() {
   Serial.println(F("{\"type\":\"hello\",\"device\":\"claude-desk-display\",\"protocol\":1}"));
 }
 
+void SerialProtocol::acknowledge(const char* message, uint32_t sequence) {
+  Serial.print(F("{\"type\":\"ack\",\"message\":\""));
+  Serial.print(message);
+  Serial.print(F("\",\"seq\":"));
+  Serial.print(sequence);
+  Serial.println('}');
+}
+
 void SerialProtocol::poll() {
   while (Serial.available()) {
     const char c = static_cast<char>(Serial.read());
@@ -47,14 +55,18 @@ void SerialProtocol::handleLine() {
   }
   if (!strcmp(type, "heartbeat")) {
     state_.lastContactMs = now;
+    acknowledge("heartbeat", doc["seq"] | 0U);
     return;
   }
   if (strcmp(type, "status")) {
     return;
   }
 
+  if (!doc["state"].is<const char*>()) {
+    return;
+  }
   DisplayState next;
-  if (!parseDisplayState(doc["state"] | nullptr, next)) {
+  if (!parseDisplayState(doc["state"].as<const char*>(), next)) {
     return;
   }
   if (next != state_.state) {
@@ -88,4 +100,5 @@ void SerialProtocol::handleLine() {
     }
   }
   state_.lastContactMs = now;
+  acknowledge("status", doc["seq"] | 0U);
 }

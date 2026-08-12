@@ -149,8 +149,17 @@ Setup performs the following actions:
 
 Restart Claude Code after setup so it reloads its hook configuration.
 
-On Windows, do not run `npm start` after setup unless you first stop the background companion. Setup
-has already started it.
+#### Windows
+
+Setup starts the companion as a hidden background process immediately and creates a per-user startup
+entry for future logins. **Do not run `npm run companion` after setup.** A second instance cannot bind
+to port `17321` and exits with `EADDRINUSE` (`address already in use`).
+
+Wait up to five seconds after connecting the display. If it still shows `OFFLINE`, follow
+[Diagnose an offline display on Windows](#diagnose-an-offline-display-on-windows) to replace the
+hidden instance with a visible one and inspect its serial connection.
+
+#### macOS and Linux
 
 Automatic startup installation is currently Windows-only. On macOS and Linux, run the companion
 manually or configure it with the operating system's user service manager:
@@ -172,27 +181,33 @@ individual Claude task keeps the display in `WORKING`.
 
 ## Test without Claude Code
 
-First run the companion in a visible terminal. On Windows, stop the background copy or sign out of
-the startup session before doing this.
-
-```powershell
-npm run companion
-```
-
-Expected output:
-
-```text
-[hook] listening on http://127.0.0.1:17321/hook
-[serial] connected to COM3
-```
-
-In a second terminal, from the repository root:
+The simulator needs a running companion. On Windows, the background companion installed by setup is
+already running, so do not start another one. Open a terminal in the repository root and run:
 
 ```powershell
 node scripts/simulate-hooks.mjs
 ```
 
-The display cycles through working, tool activity, waiting, and done states.
+The display should cycle through working, tool activity, waiting, and done states.
+
+On macOS or Linux, start the companion in the first terminal:
+
+```bash
+npm run companion
+```
+
+Expected companion output:
+
+```text
+[hook] listening on http://127.0.0.1:17321/hook
+[serial] connected to ...
+```
+
+Then run the simulator from a second terminal:
+
+```bash
+node scripts/simulate-hooks.mjs
+```
 
 ## Daily use
 
@@ -279,25 +294,63 @@ currently listed port.
 
 ### The display stays OFFLINE
 
-Run `npm run companion` in a visible terminal and check for both log lines:
+`OFFLINE` means the firmware is not receiving serial status or heartbeat messages. It does not
+necessarily mean that the local HTTP server is stopped. A process can own port `17321` while failing
+to connect to the ESP32 serial port.
+
+#### Diagnose an offline display on Windows
+
+From the repository root, find the process listening on port `17321`:
+
+```powershell
+$connection = Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 17321 -State Listen -ErrorAction SilentlyContinue
+if ($connection) { Get-Process -Id $connection.OwningProcess }
+```
+
+If it shows `node`, stop only that companion instance and start it visibly:
+
+```powershell
+if ($connection) { Stop-Process -Id $connection.OwningProcess }
+npm run companion
+```
+
+Do not close this terminal while diagnosing. A healthy connection prints both lines:
 
 ```text
 [hook] listening on http://127.0.0.1:17321/hook
-[serial] connected to ...
+[serial] connected to COM3
 ```
 
-If the hook line appears but the serial line does not:
+If `[serial] connected` does not appear, open a second PowerShell window and list the current ports:
+
+```powershell
+py -m platformio device list
+```
+
+Do not reuse the COM number from another computer. Close PlatformIO Serial Monitor, Arduino IDE, and
+other serial programs. Then stop the visible companion with `Ctrl+C` and retry with the detected port:
+
+```powershell
+$env:CLAUDE_DISPLAY_PORT = "COM3" # replace COM3 with the detected port
+npm run companion
+```
+
+The environment variable applies only to that PowerShell window. Once diagnosis is complete, stop
+the visible process with `Ctrl+C` and run `npm run setup` again to restore normal background operation.
+
+If the serial port is not listed at all:
 
 - confirm that the firmware was flashed successfully;
 - use a data-capable USB cable;
-- close programs holding the serial port;
-- run `py -m platformio device list`;
-- set `CLAUDE_DISPLAY_PORT` temporarily to test the detected port.
+- try another USB port;
+- press the board's **RESET** button;
+- inspect **Device Manager → Ports (COM & LPT)** on Windows.
 
 ### The companion reports that port 17321 is already in use
 
-Another companion instance is already running, usually the Windows startup copy. Use that instance,
-or stop it before starting a visible diagnostic process.
+The Windows background companion installed by `npm run setup` is already running. This is expected;
+do not start a second copy for normal use. If you need visible logs, use the exact PowerShell steps in
+[Diagnose an offline display on Windows](#diagnose-an-offline-display-on-windows).
 
 ### The device works, but Claude events do not appear
 

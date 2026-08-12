@@ -82,3 +82,15 @@ The companion sends a heartbeat every five seconds:
 
 It also sends a complete status refresh every second. When the firmware receives neither a valid
 heartbeat nor a valid status for 15 seconds, it displays `OFFLINE`.
+
+## Acknowledgement
+
+After applying a status or heartbeat, firmware returns an acknowledgement containing the received
+sequence number:
+
+```json
+{ "type": "ack", "message": "status", "seq": 19 }
+```
+
+The companion logs the first status acknowledgement after each serial connection. This distinguishes
+a successful serial handshake from a status message actually accepted by firmware.
